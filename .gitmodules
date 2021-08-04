@@ -1,0 +1,9 @@
+[submodule "swift-corelibs-foundation"]
+	path = swift-corelibs-foundation
+	url = https://github.com/marc-groundctl/swift-corelibs-foundation.git
+[submodule "swift-corelibs-libdispatch"]
+	path = swift-corelibs-libdispatch
+	url = https://github.com/marc-groundctl/swift-corelibs-libdispatch.git
+[submodule "icu"]
+	path = icu
+	url = https://github.com/microsoft/icu.git
