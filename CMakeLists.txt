@@ -31,6 +31,8 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake-package-confi
 set(CURL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake-package-configs")
 set(ICU_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/icu/icu/icu4c/source/dist/icu")
 
+find_package(ICU REQUIRED COMPONENTS uc i18n)
+
 set(clang_warnings
 	-Werror=all
 	-Werror=extra
