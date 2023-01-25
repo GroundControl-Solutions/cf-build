@@ -3,7 +3,7 @@
     [string]$CRTVersion="142",
 
     [Parameter(ValueFromPipelineByPropertyName=$true)]
-    [string[]]$CoreFoundationDlls=@("CoreFoundation.dll", "BlocksRuntime.dll", "dispatch.dll", "icudt68.dll", "icuin68.dll", "icuuc68.dll"),
+    [string[]]$CoreFoundationDlls=@("CoreFoundation.dll", "BlocksRuntime.dll", "icudt68.dll", "icuin68.dll", "icuuc68.dll"),
 
     [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string]$MergedManifestPath="merged.manifest",

@@ -26,6 +26,10 @@ endif()
 
 set(CF_DEPLOYMENT_SWIFT OFF CACHE BOOL "" FORCE)
 
+set(HAS_LIBDISPATCH_API OFF CACHE BOOL "" FORCE)
+set(BUILD_NETWORKING OFF CACHE BOOL "" FORCE)
+set(BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+
 # This directory contains fake finders for curl and libxml2, since they're not actually needed
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake-package-configs")
 set(CURL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake-package-configs")
@@ -47,13 +51,15 @@ set(clang_warnings
 	-Wno-unused-function
 	-Wno-error=unused-variable
 	-Wno-unused-variable
+	-Wno-error=unused-label
+	-Wno-unused-label
 	-Wno-error=sign-compare
 	-Wno-sign-compare
 	-Wno-error=nonnull
 	-Wno-nonnull
 )
 
-add_subdirectory(swift-corelibs-libdispatch)
+add_subdirectory(swift-corelibs-foundation/Sources/BlocksRuntime)
 add_subdirectory(swift-corelibs-foundation/Sources/UUID)
 add_subdirectory(swift-corelibs-foundation/CoreFoundation)
 
@@ -80,8 +86,3 @@ add_custom_target(uuid-headers
 	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/uuid-headers/uuid/uuid.h
 )
 add_dependencies(CoreFoundation uuid-headers)
-
-target_compile_options(dispatch
-	PRIVATE
-	${clang_warnings}
-)
