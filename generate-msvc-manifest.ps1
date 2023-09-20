@@ -1,0 +1,105 @@
+﻿#Requires -Version 3
+
+param(
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string[]]$CoreFoundationDlls=@("CoreFoundation.dll", "BlocksRuntime.dll", "icudt68.dll", "icuin68.dll", "icuuc68.dll"),
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string]$ManifestPath="GroundControl.CoreFoundation.manifest",
+
+    [Parameter(ValueFromPipelineByPropertyName=$true)]
+    [string]$OutputPath="cf.wxs"
+)
+
+function script:add-component {
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [System.Xml.XmlWriter]$xml,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [string]$FileName
+    )
+
+    $xml.WriteStartElement("Component")
+     $xml.WriteAttributeString("Directory", "CoreFoundation")
+     $xml.WriteStartElement("File")
+      $xml.WriteAttributeString("Source", "!(bindpath.cf)\$FileName")
+      $xml.WriteAttributeString("KeyPath", "yes")
+     $xml.WriteEndElement()
+    $xml.WriteEndElement()
+}
+
+function script:add-manifestfile {
+    param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [System.Xml.XmlWriter]$xml,
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+        [string]$FileName
+    )
+
+    $xml.WriteStartElement("file")
+     $xml.WriteAttributeString("name", "$FileName")
+    $xml.WriteEndElement()
+}
+
+$ErrorActionPreference = "Stop"
+
+$full_manifest_path = [IO.Path]::Combine((Get-Location), $ManifestPath)
+$full_output_path = [IO.Path]::Combine((Get-Location), $OutputPath)
+$xml_settings = New-Object -TypeName System.Xml.XmlWriterSettings
+$xml_settings.Indent = $true
+$xml_settings.IndentChars = "`t"
+$xml_settings.CloseOutput = $true
+
+$manifest_writer = New-Object -TypeName System.IO.StreamWriter -ArgumentList @($full_manifest_path, $false, [System.Text.Encoding]::UTF8)
+[System.Xml.XmlWriter]$xml = [System.Xml.XmlWriter]::Create($manifest_writer, $xml_settings)
+$xml.WriteStartElement("assembly", "urn:schemas-microsoft-com:asm.v1")
+ $xml.WriteAttributeString("manifestVersion", "1.0")
+ $xml.WriteStartElement("assemblyIdentity")
+  $xml.WriteAttributeString("type", "win32")
+  $xml.WriteAttributeString("name", "GroundControl.CoreFoundation")
+  $xml.WriteAttributeString("version", "1.0.0.0")
+ $xml.WriteEndElement()
+ $CoreFoundationDlls | ForEach-Object -Process { add-manifestfile -xml $xml -FileName $_ }
+$xml.WriteEndElement()
+$xml.Close()
+
+$text_writer = New-Object -TypeName System.IO.StreamWriter -ArgumentList @($full_output_path, $false, [System.Text.Encoding]::UTF8)
+[System.Xml.XmlWriter]$xml = [System.Xml.XmlWriter]::Create($text_writer, $xml_settings)
+$xml.WriteStartElement("Wix", "http://schemas.microsoft.com/wix/2006/wi")
+ $xml.WriteStartElement("Fragment")
+  $xml.WriteAttributeString("Id", "CoreFoundationFragment")
+  $xml.WriteStartElement("DirectoryRef")
+   $xml.WriteAttributeString("Id", "INSTALLDIR")
+   $xml.WriteStartElement("Directory")
+    $xml.WriteAttributeString("Id", "CoreFoundation")
+    $xml.WriteAttributeString("Name", "GroundControl.CoreFoundation")
+   $xml.WriteEndElement()
+  $xml.WriteEndElement()
+
+  # Insert newline to visually separate element types
+  $xml.Flush()
+  $text_writer.WriteLine()
+
+  $xml.WriteStartElement("ComponentGroup")
+   $xml.WriteAttributeString("Id", "CoreFoundationFiles")
+   $CoreFoundationDlls | ForEach-Object -Process { add-component -xml $xml -FileName $_ }
+   add-component -xml $xml -FileName (Split-Path -Leaf $ManifestPath)
+  $xml.WriteEndElement()
+
+  $xml.Flush()
+  $text_writer.WriteLine()
+
+  $xml.WriteStartElement("FeatureGroup")
+  $xml.WriteAttributeString("Id", "CoreFoundation")
+   $xml.WriteStartElement("Feature")
+    $xml.WriteAttributeString("Id", "CoreFoundationFiles")
+    $xml.WriteAttributeString("Level", "1")
+    $xml.WriteStartElement("ComponentGroupRef")
+     $xml.WriteAttributeString("Id", "CoreFoundationFiles")
+    $xml.WriteEndElement()
+   $xml.WriteEndElement()
+  $xml.WriteEndElement()
+
+ $xml.WriteEndElement()
+$xml.WriteEndElement()
+$xml.Close()

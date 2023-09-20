@@ -1,4 +1,6 @@
-﻿param(
+﻿#Requires -Version 3
+
+param(
     [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string]$CRTVersion="142",
 

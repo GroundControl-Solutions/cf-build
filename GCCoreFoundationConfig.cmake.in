@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+if(NOT TARGET GC::CoreFoundation)
+	set(GCCF_DIR ${PACKAGE_PREFIX_DIR})
+	add_library(GC::CoreFoundation SHARED IMPORTED)
+	set_target_properties(GC::CoreFoundation PROPERTIES
+		IMPORTED_LOCATION "${GCCF_DIR}/CoreFoundation.dll"
+		IMPORTED_IMPLIB "${GCCF_DIR}/CoreFoundation.lib"
+	)
+	target_include_directories(GC::CoreFoundation SYSTEM INTERFACE "${GCCF_DIR}")
+	target_compile_definitions(GC::CoreFoundation INTERFACE SHIP_COREFOUNDATION=1 _WINDLL=1)
+endif()
+check_required_components(GCCoreFoundation)

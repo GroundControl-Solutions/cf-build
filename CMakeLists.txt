@@ -17,9 +17,15 @@ add_dependencies(fail_build_interface fail_build)
 set(CLANG_BUILTINS_ARCH "" CACHE STRING "Look for clang_rt.builtins-<arch> and explicitly link it")
 if(CLANG_BUILTINS_ARCH)
 	# For some reason this isn't linked by default and isn't in the default linker path, so we need to explicitly search for it
+	# VS sometimes uses the full version and sometimes uses only the major version, so search for both
+	string(REPLACE "." ";" clang_version_list "${CMAKE_C_COMPILER_VERSION}")
+	list(POP_FRONT clang_version_list clang_major_version)
 	get_filename_component(clang_bin_dir "${CMAKE_C_COMPILER}" DIRECTORY)
-	find_library(clang_builtins "clang_rt.builtins-${CLANG_BUILTINS_ARCH}.lib"
-		HINTS "${clang_bin_dir}/../lib/clang/${CMAKE_C_COMPILER_VERSION}/lib/windows"
+	find_library(CLANG_BUILTINS_PATH "clang_rt.builtins-${CLANG_BUILTINS_ARCH}.lib"
+		HINTS
+		"${clang_bin_dir}/../lib/clang/${CMAKE_C_COMPILER_VERSION}/lib/windows"
+		"${clang_bin_dir}/../lib/clang/${clang_major_version}/lib/windows"
+		NO_DEFAULT_PATH
 		REQUIRED
 	)
 endif()
@@ -51,12 +57,16 @@ set(clang_warnings
 	-Wno-unused-function
 	-Wno-error=unused-variable
 	-Wno-unused-variable
+	-Wno-error=unused-but-set-variable
+	-Wno-unused-but-set-variable
 	-Wno-error=unused-label
 	-Wno-unused-label
 	-Wno-error=sign-compare
 	-Wno-sign-compare
 	-Wno-error=nonnull
 	-Wno-nonnull
+	-Wno-error=missing-field-initializers
+	-Wno-missing-field-initializers
 )
 
 add_subdirectory(swift-corelibs-foundation/Sources/BlocksRuntime)
@@ -70,7 +80,7 @@ target_compile_options(CoreFoundation
 target_link_libraries(CoreFoundation
 	PRIVATE
 	uuid
-	${clang_builtins}
+	${CLANG_BUILTINS_PATH}
 )
 target_include_directories(CoreFoundation
 	PRIVATE
@@ -78,11 +88,41 @@ target_include_directories(CoreFoundation
 )
 
 # For some reason this is done in the root CMakeLists instead of the UUID CMakeLists, so replicate it here
-add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/uuid-headers/uuid/uuid.h
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/uuid-headers/uuid
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/swift-corelibs-foundation/Sources/UUID/uuid.h ${CMAKE_CURRENT_BINARY_DIR}/uuid-headers/uuid/uuid.h
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/swift-corelibs-foundation/Sources/UUID/uuid.h
+	${CMAKE_CURRENT_BINARY_DIR}/uuid-headers/uuid/uuid.h
+	COPYONLY
 )
-add_custom_target(uuid-headers
-	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/uuid-headers/uuid/uuid.h
+
+execute_process(
+	COMMAND "${CMAKE_COMMAND}" -E echo _MSC_VER _MSC_FULL_VER
+	COMMAND "${CMAKE_C_COMPILER}" /E -
+	OUTPUT_VARIABLE versions_text
+	COMMAND_ERROR_IS_FATAL ANY
 )
-add_dependencies(CoreFoundation uuid-headers)
+string(REPLACE ";" "_" versions_text2 "${versions_text}")
+string(REGEX REPLACE "\r?\n" ";" version_list "${versions_text2}")
+list(FILTER version_list INCLUDE REGEX "^[0-9]* [0-9]*$")
+string(REPLACE " " ";" version_nums "${version_list}")
+list(POP_FRONT version_nums ver full_ver)
+if(NOT ver OR NOT full_ver OR version_nums)
+	message(FATAL_ERROR "Could not parse MSVC version; output was ${versions_text}")
+endif()
+string(LENGTH "${ver}" ver_length)
+string(SUBSTRING "${full_ver}" 0 ${ver_length} ver_prefix)
+if(NOT ver_prefix STREQUAL ver)
+	message(FATAL_ERROR "Full version '${full_ver}' does not start with version '${ver}'")
+endif()
+string(SUBSTRING "${full_ver}" ${ver_length} -1 build_ver)
+math(EXPR major_length "${ver_length}-2")
+string(SUBSTRING "${ver}" 0 ${major_length} major_ver)
+string(SUBSTRING "${ver}" ${major_length} -1 minor_ver)
+
+message(NOTICE "Clang is imitating MSVC version ${major_ver}.${minor_ver}.${build_ver}")
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+	GCCoreFoundationConfig.cmake.in
+	${CMAKE_CURRENT_BINARY_DIR}/cmake/GCCoreFoundationConfig.cmake
+	INSTALL_DESTINATION "cmake"
+)
