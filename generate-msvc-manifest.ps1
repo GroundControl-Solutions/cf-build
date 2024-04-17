@@ -21,6 +21,7 @@ function script:add-component {
 
     $xml.WriteStartElement("Component")
      $xml.WriteAttributeString("Directory", "CoreFoundation")
+     $xml.WriteAttributeString("Win64", "no")
      $xml.WriteStartElement("File")
       $xml.WriteAttributeString("Source", "!(bindpath.cf)\$FileName")
       $xml.WriteAttributeString("KeyPath", "yes")
@@ -83,7 +84,34 @@ $xml.WriteStartElement("Wix", "http://schemas.microsoft.com/wix/2006/wi")
   $xml.WriteStartElement("ComponentGroup")
    $xml.WriteAttributeString("Id", "CoreFoundationFiles")
    $CoreFoundationDlls | ForEach-Object -Process { add-component -xml $xml -FileName $_ }
-   add-component -xml $xml -FileName (Split-Path -Leaf $ManifestPath)
+
+   # Insert newline to visually separate element types
+   $xml.Flush()
+   $text_writer.WriteLine()
+
+   # For compatability with the 32-bit installer, add 2 mutually-exclusive components that install the same file to the same location
+   $xml.WriteStartElement("Component")
+    $xml.WriteAttributeString("Directory", "CoreFoundation")
+    $xml.WriteAttributeString("Guid", "95e0440d-0f08-4223-8389-e498cbb9ccfc")
+    $xml.WriteAttributeString("Win64", "no")
+    $xml.WriteStartElement("File")
+     $xml.WriteAttributeString("Source", "!(bindpath.cf)\$ManifestPath")
+     $xml.WriteAttributeString("Id", "_95e0440d_0f08_4223_8389_e498cbb9ccfc")
+     $xml.WriteAttributeString("KeyPath", "yes")
+    $xml.WriteEndElement()
+    $xml.WriteElementString("Condition","NOT Privileged")
+   $xml.WriteEndElement()
+   $xml.WriteStartElement("Component")
+    $xml.WriteAttributeString("Directory", "CoreFoundation")
+    $xml.WriteAttributeString("Guid", "5ee276e0-1933-47ef-9696-d529b5b0b337")
+    $xml.WriteAttributeString("Win64", "no")
+    $xml.WriteStartElement("File")
+     $xml.WriteAttributeString("Source", "!(bindpath.cf)\$ManifestPath")
+     $xml.WriteAttributeString("Id", "_5ee276e0_1933_47ef_9696_d529b5b0b337")
+     $xml.WriteAttributeString("KeyPath", "yes")
+    $xml.WriteEndElement()
+    $xml.WriteElementString("Condition","Privileged")
+   $xml.WriteEndElement()
   $xml.WriteEndElement()
 
   $xml.Flush()
