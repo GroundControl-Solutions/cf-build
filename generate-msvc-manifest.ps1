@@ -2,7 +2,7 @@
 
 param(
     [Parameter(ValueFromPipelineByPropertyName=$true)]
-    [string[]]$CoreFoundationDlls=@("CoreFoundation.dll", "BlocksRuntime.dll", "icudt68.dll", "icuin68.dll", "icuuc68.dll"),
+    [string[]]$CoreFoundationDlls=@("CoreFoundation.dll", "BlocksRuntime.dll", "icudt72.dll", "icuin72.dll", "icuuc72.dll"),
 
     [Parameter(ValueFromPipelineByPropertyName=$true)]
     [string]$ManifestPath="GroundControl.CoreFoundation.manifest",
