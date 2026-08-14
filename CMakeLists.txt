@@ -49,7 +49,7 @@ set(clang_warnings
 	-Werror=extra
 	-Werror=incompatible-function-pointer-types
 	-Werror=incompatible-pointer-types
-
+	
 	-Wno-error=switch
 	-Wno-switch
 	-Wno-error=unused-parameter
@@ -68,6 +68,7 @@ set(clang_warnings
 	-Wno-nonnull
 	-Wno-error=missing-field-initializers
 	-Wno-missing-field-initializers
+	-Wno-cast-function-type-mismatch
 )
 
 add_subdirectory(swift-corelibs-foundation/Sources/BlocksRuntime)
